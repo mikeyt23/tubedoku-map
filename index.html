@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tubedoku Station Tracker</title>
+  <meta name="description" content="Track your London Underground station frequency in Tubedoku and uncover unused stations.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23e32017'/><circle cx='50' cy='50' r='27' fill='white'/><rect x='5' y='40' width='90' height='20' fill='%23003688' rx='4'/><text x='50' y='54' fill='white' font-family='sans-serif' font-size='12' font-weight='bold' text-anchor='middle'>TUBEDOKU</text></svg>">
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #151d30;
+      --bg-card-hover: #1c263f;
+      --bg-input: #101726;
+      --border-color: #232f48;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent-red: #e32017;
+      --accent-blue: #003688;
+      --accent-green: #00782a;
+      --accent-yellow: #ffd300;
+      --accent-cyan: #0098d4;
+
+      /* Official TfL Line colors */
+      --line-bakerloo: #B36305;
+      --line-central: #E32017;
+      --line-circle: #FFD300;
+      --line-district: #00782A;
+      --line-hammersmith: #F4A9BE;
+      --line-jubilee: #A0A5A9;
+      --line-metropolitan: #9B0058;
+      --line-northern: #000000;
+      --line-piccadilly: #003688;
+      --line-victoria: #0098D4;
+      --line-waterloo: #95CDBA;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      line-height: 1.5;
+      padding-bottom: 60px;
+    }
+
+    a {
+      color: var(--accent-cyan);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 16px 20px;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(180deg, #162035 0%, var(--bg-main) 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 24px 0 16px 0;
+    }
+    .header-content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .roundel-icon {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+    }
+    .brand-titles h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .brand-titles .badge-tag {
+      font-size: 0.72rem;
+      background: rgba(0, 152, 212, 0.18);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 152, 212, 0.4);
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+    .brand-titles p {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn:active {
+      transform: scale(0.97);
+    }
+    .btn-primary {
+      background: var(--accent-red);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #c81a12;
+    }
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border-color: var(--border-color);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: #3b4d75;
+    }
+    .btn-accent {
+      background: rgba(0, 152, 212, 0.15);
+      color: var(--accent-cyan);
+      border-color: rgba(0, 152, 212, 0.4);
+    }
+    .btn-accent:hover {
+      background: rgba(0, 152, 212, 0.25);
+    }
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 0.78rem;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+    .stat-val {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.1;
+    }
+    .stat-sub {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    /* Progress Banner */
+    .progress-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+    .progress-bar-bg {
+      height: 10px;
+      background: #1e293b;
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0098d4 0%, #00782a 100%);
+      border-radius: 999px;
+      transition: width 0.4s ease;
+    }
+
+    /* Nav Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 20px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 2px;
+    }
+    .nav-tabs::-webkit-scrollbar {
+      display: none;
+    }
+    .tab-btn {
+      padding: 10px 16px;
+      border-radius: 8px 8px 0 0;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      position: relative;
+    }
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .tab-btn.active {
+      color: #fff;
+      background: var(--bg-card);
+    }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--accent-red);
+      border-radius: 3px 3px 0 0;
+    }
+    .tab-badge {
+      font-size: 0.72rem;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: #232f48;
+      color: var(--text-muted);
+    }
+    .tab-btn.active .tab-badge {
+      background: rgba(0, 152, 212, 0.25);
+      color: var(--accent-cyan);
+    }
+
+    /* Filter Controls */
+    .filter-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .search-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .search-input-wrap {
+      flex: 1;
+      min-width: 220px;
+      position: relative;
+    }
+    .search-input-wrap svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      fill: var(--text-dim);
+    }
+    .search-input {
+      width: 100%;
+      padding: 10px 14px 10px 36px;
+      border-radius: 8px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus {
+      border-color: var(--accent-cyan);
+    }
+    .select-input {
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      font-size: 0.88rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* Line Filter Pills */
+    .line-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .pill-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-right: 4px;
+    }
+    .line-pill {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-input);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s;
+    }
+    .line-pill:hover {
+      border-color: #3b4d75;
+      color: #fff;
+    }
+    .line-pill.active {
+      background: #232f48;
+      color: #fff;
+      border-color: var(--accent-cyan);
+    }
+    .line-pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Tube Line Badges */
+    .line-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      color: #ffffff;
+      white-space: nowrap;
+      letter-spacing: -0.01em;
+    }
+    .badge-bakerloo { background: var(--line-bakerloo); }
+    .badge-central { background: var(--line-central); }
+    .badge-circle { background: var(--line-circle); color: #000; }
+    .badge-district { background: var(--line-district); }
+    .badge-hammersmith { background: var(--line-hammersmith); color: #000; }
+    .badge-jubilee { background: var(--line-jubilee); color: #000; }
+    .badge-metropolitan { background: var(--line-metropolitan); }
+    .badge-northern { background: #000000; border: 1px solid #444; }
+    .badge-piccadilly { background: var(--line-piccadilly); }
+    .badge-victoria { background: var(--line-victoria); }
+    .badge-waterloo { background: var(--line-waterloo); color: #000; }
+
+    /* Station Table / List */
+    .station-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .station-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: background-color 0.15s;
+    }
+    .station-card:hover {
+      background: var(--bg-card-hover);
+    }
+    .station-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+      flex: 1;
+    }
+    .station-rank {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--text-dim);
+      width: 28px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .station-info {
+      min-width: 0;
+      flex: 1;
+    }
+    .station-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .station-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .zone-tag {
+      font-size: 0.68rem;
+      font-weight: 700;
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .station-lines {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .station-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      text-align: right;
+    }}
+    .count-box {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .count-num {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    .count-unit {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .count-pct {
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+    .freq-bar-outer {
+      width: 70px;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .freq-bar-inner {
+      height: 100%;
+      background: var(--accent-red);
+      border-radius: 999px;
+    }
+
+    /* Unused Card Grid */
+    .unused-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 10px;
+    }
+    .unused-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .unused-card:hover {
+      border-color: #3b4d75;
+    }
+    .unused-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .unused-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    /* Guide & Instructions Box */
+    .guide-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .guide-box h2 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .guide-box p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+    }
+    .code-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.8rem;
+      color: #38bdf8;
+      word-break: break-all;
+      max-height: 120px;
+      overflow-y: auto;
+      margin: 12px 0;
+      user-select: all;
+    }
+    .instruction-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin: 16px 0;
+    }
+    .step-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .step-number {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent-red);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .step-text h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 3px;
+    }
+    .step-text p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #0f172a;
+      color: #fff;
+      border: 1px solid var(--accent-cyan);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 152, 212, 0.3);
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 9999;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      background: var(--bg-card);
+      border: 1px dashed var(--border-color);
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+    .empty-state h3 {
+      font-size: 1.15rem;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+    .empty-state p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      max-width: 480px;
+      margin: 0 auto 18px auto;
+    }
+
+    /* Phase 2 Teaser */
+    .teaser-card {
+      background: linear-gradient(135deg, #131c31 0%, #1a2542 100%);
+      border: 1px solid #2d3b5e;
+      border-radius: 14px;
+      padding: 24px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .teaser-card h3 {
+      font-size: 1.25rem;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .teaser-card p {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      max-width: 600px;
+      margin: 0 auto 18px auto;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .container {
+        padding: 12px 14px;
+      }
+      .brand-titles h1 {
+        font-size: 1.25rem;
+      }
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .station-card {
+        padding: 10px 12px;
+      }
+      .station-name {
+        font-size: 0.92rem;
+      }
+      .count-num {
+        font-size: 1.1rem;
+      }
+      .freq-bar-outer {
+        width: 50px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="container header-content">
+      <div class="brand">
+        <!-- London Underground Roundel SVG Icon -->
+        <svg class="roundel-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="45" fill="#E32017"/>
+          <circle cx="50" cy="50" r="28" fill="#0B0F19"/>
+          <rect x="2" y="40" width="96" height="20" fill="#003688" rx="3"/>
+          <text x="50" y="54" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="900" letter-spacing="1" text-anchor="middle">TUBEDOKU</text>
+        </svg>
+        <div class="brand-titles">
+          <h1>Tubedoku Station Tracker <span class="badge-tag">Phase 1</span></h1>
+          <p>Analyze station frequency & uncover unplayed London Underground stations</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="switchTab('bookmarklet')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+          Mobile Bookmarklet Setup
+        </button>
+        <button class="btn btn-secondary" onclick="loadSampleData()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Try Sample Data
+        </button>
+        <button class="btn btn-secondary" onclick="switchTab('data')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Manual Import/Export
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Stats Bar -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <span class="stat-label">Puzzles Played</span>
+        <span class="stat-val" id="statPuzzles">0</span>
+        <span class="stat-sub" id="statPuzzlesSub">Days recorded</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Total Answers</span>
+        <span class="stat-val" id="statAnswers">0</span>
+        <span class="stat-sub">Station submissions</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Stations Used</span>
+        <span class="stat-val" id="statUnique">0</span>
+        <span class="stat-sub" id="statUniquePct">0% of 272 network</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Unused Stations</span>
+        <span class="stat-val" id="statUnused">272</span>
+        <span class="stat-sub">Yet to be played</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Top Station</span>
+        <span class="stat-val" id="statTopStation" style="font-size: 1.15rem; word-break: break-word;">-</span>
+        <span class="stat-sub" id="statTopCount">0 uses</span>
+      </div>
+    </div>
+
+    <!-- Progress to 272 Stations -->
+    <div class="progress-box">
+      <div class="progress-header">
+        <span>London Underground Network Coverage</span>
+        <span id="coverageText">0 / 272 stations (0.0%)</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar" style="width: 0%;"></div>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" id="tabBtnFrequency" onclick="switchTab('frequency')">
+        Station Frequency
+        <span class="tab-badge" id="badgeUsedCount">0</span>
+      </button>
+      <button class="tab-btn" id="tabBtnUnused" onclick="switchTab('unused')">
+        Unused Stations (The Dream)
+        <span class="tab-badge" id="badgeUnusedCount">272</span>
+      </button>
+      <button class="tab-btn" id="tabBtnBookmarklet" onclick="switchTab('bookmarklet')">
+        Bookmarklet Setup
+      </button>
+      <button class="tab-btn" id="tabBtnMap" onclick="switchTab('map')">
+        TfL Map (Phase 2)
+      </button>
+      <button class="tab-btn" id="tabBtnData" onclick="switchTab('data')">
+        Data Drawer
+      </button>
+    </div>
+
+    <!-- TAB 1: Station Frequency View -->
+    <div id="viewFrequency">
+      <div class="filter-bar">
+        <div class="search-row">
+          <div class="search-input-wrap">
+            <svg viewBox="0 0 24 24"><path d="M21.71 20.29l-5.4-5.4A7.9 7.9 0 0 0 18 10a8 8 0 1 0-8 8 7.9 7.9 0 0 0 4.89-1.69l5.4 5.4a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.42zM4 10a6 6 0 1 1 6 6 6 6 0 0 1-6-6z"/></svg>
+            <input type="text" id="freqSearch" class="search-input" placeholder="Search used stations by name or line..." oninput="onFilterChange()">
+          </div>
+          <select id="freqSort" class="select-input" onchange="onFilterChange()">
+            <option value="count-desc">Sort: Most Used First</option>
+            <option value="count-asc">Sort: Least Used First</option>
+            <option value="name-asc">Sort: Station Name (A to Z)</option>
+            <option value="name-desc">Sort: Station Name (Z to A)</option>
+            <option value="zone-asc">Sort: Fare Zone (1 to 9)</option>
+          </select>
+        </div>
+
+        <div class="line-pills" id="lineFilterPills">
+          <span class="pill-label">Filter Line:</span>
+          <!-- populated dynamically -->
+        </div>
+      </div>
+
+      <div id="freqListContainer" class="station-list">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- TAB 2: Unused Stations View -->
+    <div id="viewUnused" style="display: none;">
+      <div class="filter-bar">
+        <div class="search-row">
+          <div class="search-input-wrap">
+            <svg viewBox="0 0 24 24"><path d="M21.71 20.29l-5.4-5.4A7.9 7.9 0 0 0 18 10a8 8 0 1 0-8 8 7.9 7.9 0 0 0 4.89-1.69l5.4 5.4a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.42zM4 10a6 6 0 1 1 6 6 6 6 0 0 1-6-6z"/></svg>
+            <input type="text" id="unusedSearch" class="search-input" placeholder="Search unused stations by name..." oninput="onFilterChange()">
+          </div>
+          <select id="unusedLineSelect" class="select-input" onchange="onFilterChange()">
+            <option value="all">All Lines</option>
+          </select>
+          <select id="unusedZoneSelect" class="select-input" onchange="onFilterChange()">
+            <option value="all">All Zones</option>
+            <option value="1">Zone 1</option>
+            <option value="2">Zone 2</option>
+            <option value="3">Zone 3</option>
+            <option value="4">Zone 4</option>
+            <option value="5">Zone 5</option>
+            <option value="6">Zone 6</option>
+            <option value="7">Zone 7</option>
+            <option value="8">Zone 8</option>
+            <option value="9">Zone 9</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="unusedGridContainer" class="unused-grid">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- TAB 3: Bookmarklet Setup View -->
+    <div id="viewBookmarklet" style="display: none;">
+      <div class="guide-box">
+        <h2>Mobile Bookmarklet Generator</h2>
+        <p>Because mobile browsers do not allow web apps to directly access another website's storage, this lightweight bookmarklet extracts your <code>archivedAnswers</code> and <code>completedPuzzles</code> on tubedoku.com and securely bounces back here via a base64 encoded URL parameter.</p>
+
+        <div style="margin: 16px 0;">
+          <label style="display:block; font-size: 0.85rem; font-weight: 700; color: #fff; margin-bottom: 6px;">Return App URL:</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="targetUrlInput" class="search-input" style="flex:1;" oninput="updateBookmarkletCode()">
+            <button class="btn btn-secondary btn-sm" onclick="resetTargetUrl()">Reset URL</button>
+          </div>
+        </div>
+
+        <label style="display:block; font-size: 0.85rem; font-weight: 700; color: #fff; margin-top: 14px;">Bookmarklet Code:</label>
+        <div class="code-box" id="bookmarkletCodeDisplay"></div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px;">
+          <button class="btn btn-primary" onclick="copyBookmarkletCode()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            Copy Bookmarklet Code
+          </button>
+          <button class="btn btn-accent" onclick="testBookmarkletLocally()">
+            Run Test Export on This Page
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Setup Instructions -->
+      <div class="guide-box">
+        <h2>How to Install on Your Phone (Takes 30 Seconds)</h2>
+        
+        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+          <button class="btn btn-secondary btn-sm active" id="btnGuideIos" onclick="toggleGuideDevice('ios')">iOS (Safari)</button>
+          <button class="btn btn-secondary btn-sm" id="btnGuideAndroid" onclick="toggleGuideDevice('android')">Android (Chrome)</button>
+        </div>
+
+        <!-- iOS Instructions -->
+        <div id="guideIos" class="instruction-steps">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-text">
+              <h4>Bookmark this page</h4>
+              <p>In Safari, tap the <strong>Share button</strong> (box with arrow up) &rarr; tap <strong>Add Bookmark</strong>. Name it <code>Export Tubedoku</code> and tap <strong>Save</strong>.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-text">
+              <h4>Edit the bookmark with the copied code</h4>
+              <p>Tap the <strong>Bookmarks icon</strong> (open book) &rarr; tap <strong>Edit</strong> in the bottom right &rarr; tap <strong>Export Tubedoku</strong> &rarr; clear the URL and <strong>Paste</strong> the bookmarklet code &rarr; tap <strong>Done</strong>.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-text">
+              <h4>Run on tubedoku.com</h4>
+              <p>Go to <a href="https://tubedoku.com" target="_blank" rel="noopener">tubedoku.com</a> where you play. Tap your Safari address bar, type <code>Export Tubedoku</code>, and tap the bookmark suggestion. It will extract your history and redirect straight back here with your stats!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Android Instructions -->
+        <div id="guideAndroid" class="instruction-steps" style="display: none;">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-text">
+              <h4>Bookmark this page</h4>
+              <p>In Chrome, tap the <strong>three dots menu (&vellip;)</strong> &rarr; tap the <strong>Star icon (&star;)</strong> to bookmark this page.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-text">
+              <h4>Edit the bookmark URL</h4>
+              <p>Tap <strong>Edit</strong> at the bottom of the screen (or go to Menu &rarr; Bookmarks &rarr; tap 3 dots next to the bookmark &rarr; Edit). Change the name to <code>Export Tubedoku</code> and paste the bookmarklet script into the <strong>URL field</strong>.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-text">
+              <h4>Run on tubedoku.com</h4>
+              <p>Open <a href="https://tubedoku.com" target="_blank" rel="noopener">tubedoku.com</a>. In Chrome's URL bar, type <code>Export Tubedoku</code> and tap the bookmark result to export your game records back to this app.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Phase 2 Map Preview -->
+    <div id="viewMap" style="display: none;">
+      <div class="teaser-card">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#0098d4" stroke-width="1.5" style="margin-bottom: 12px; margin-left: auto; margin-right: auto; display: block;">
+          <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+          <line x1="8" y1="2" x2="8" y2="18"></line>
+          <line x1="16" y1="6" x2="16" y2="22"></line>
+        </svg>
+        <h3>Phase 2: London Underground Map Visualisation</h3>
+        <p>In Phase 2, all 272 stations will be mapped directly onto the iconic London Underground map. You'll be able to zoom into Central London or out to Chesham, see color-coded heatmaps of your most frequent lines, and pinpoint untouched pockets of the network.</p>
+        <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+          <span class="badge-tag">272 Station Coordinates Ready</span>
+          <span class="badge-tag">11 Tube Lines Catalogued</span>
+          <span class="badge-tag">Zero External Dependencies</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: Data & JSON Backup Drawer -->
+    <div id="viewData" style="display: none;">
+      <div class="guide-box">
+        <h2>Data Management & Manual Backup</h2>
+        <p>You can inspect, export, or manually import your Tubedoku data here.</p>
+        
+        <div style="margin: 14px 0;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #fff; margin-bottom: 6px;">Raw JSON Data (archivedAnswers / completedPuzzles):</label>
+          <textarea id="rawJsonTextarea" class="search-input" style="height: 160px; font-family: monospace; font-size: 0.82rem; resize: vertical;" placeholder="Paste raw JSON or base64 data here..."></textarea>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+          <button class="btn btn-primary" onclick="importManualJson()">
+            Import Pasted Data
+          </button>
+          <button class="btn btn-secondary" onclick="exportDataJson()">
+            Download JSON Backup
+          </button>
+          <button class="btn btn-secondary" onclick="copyDataJson()">
+            Copy JSON to Clipboard
+          </button>
+          <button class="btn btn-secondary" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3);" onclick="clearAllData()">
+            Clear All Stored Data
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span id="toastMsg">Notification message</span>
+  </div>
+
+  <script>
+    // Canonical London Underground stations (272 stations)
+    const STATIONS = [{"n":"Acton Town","z":"3","l":["District","Piccadilly"],"lat":51.50306,"lon":-0.28046,"id":"940GZZLUACT"},{"n":"Aldgate","z":"1","l":["Circle","Metropolitan"],"lat":51.51425,"lon":-0.07569,"id":"940GZZLUALD"},{"n":"Aldgate East","z":"1","l":["District","Hammersmith & City"],"lat":51.51504,"lon":-0.07238,"id":"940GZZLUADE"},{"n":"Alperton","z":"4","l":["Piccadilly"],"lat":51.54063,"lon":-0.29961,"id":"940GZZLUALP"},{"n":"Amersham","z":"9","l":["Metropolitan"],"lat":51.67413,"lon":-0.60771,"id":"940GZZLUAMS"},{"n":"Angel","z":"1","l":["Northern"],"lat":51.53184,"lon":-0.10635,"id":"940GZZLUAGL"},{"n":"Archway","z":"2+3","l":["Northern"],"lat":51.56548,"lon":-0.13482,"id":"940GZZLUACY"},{"n":"Arnos Grove","z":"4","l":["Piccadilly"],"lat":51.61645,"lon":-0.13306,"id":"940GZZLUASG"},{"n":"Arsenal","z":"2","l":["Piccadilly"],"lat":51.55866,"lon":-0.10746,"id":"940GZZLUASL"},{"n":"Baker Street","z":"1","l":["Bakerloo","Circle","Hammersmith & City","Jubilee","Metropolitan"],"lat":51.52288,"lon":-0.15713,"id":"940GZZLUBST"},{"n":"Balham","z":"3","l":["Northern"],"lat":51.44329,"lon":-0.153,"id":"940GZZLUBLM"},{"n":"Bank","z":"1","l":["Central","Northern","Waterloo & City"],"lat":51.51313,"lon":-0.09005,"id":"940GZZLUBNK"},{"n":"Barbican","z":"1","l":["Circle","Hammersmith & City","Metropolitan"],"lat":51.52027,"lon":-0.09799,"id":"940GZZLUBBN"},{"n":"Barking","z":"4","l":["District","Hammersmith & City"],"lat":51.53932,"lon":0.08105,"id":"940GZZLUBKG"},{"n":"Barkingside","z":"4","l":["Central"],"lat":51.58569,"lon":0.08858,"id":"940GZZLUBKE"},{"n":"Barons Court","z":"2","l":["District","Piccadilly"],"lat":51.49031,"lon":-0.21343,"id":"940GZZLUBSC"},{"n":"Battersea Power Station","z":"1","l":["Northern"],"lat":51.47993,"lon":-0.14214,"id":"940GZZBPSUST"},{"n":"Bayswater","z":"1","l":["Circle","District"],"lat":51.51228,"lon":-0.18794,"id":"940GZZLUBWT"},{"n":"Becontree","z":"5","l":["District"],"lat":51.54033,"lon":0.12702,"id":"940GZZLUBEC"},{"n":"Belsize Park","z":"2","l":["Northern"],"lat":51.55031,"lon":-0.16465,"id":"940GZZLUBZP"},{"n":"Bermondsey","z":"2","l":["Jubilee"],"lat":51.49775,"lon":-0.06399,"id":"940GZZLUBMY"},{"n":"Bethnal Green","z":"2","l":["Central"],"lat":51.52722,"lon":-0.05551,"id":"940GZZLUBLG"},{"n":"Blackfriars","z":"1","l":["Circle","District"],"lat":51.51158,"lon":-0.10366,"id":"940GZZLUBKF"},{"n":"Blackhorse Road","z":"3","l":["Victoria"],"lat":51.58692,"lon":-0.04115,"id":"940GZZLUBLR"},{"n":"Bond Street","z":"1","l":["Central","Jubilee"],"lat":51.5143,"lon":-0.14972,"id":"940GZZLUBND"},{"n":"Borough","z":"1","l":["Northern"],"lat":51.5012,"lon":-0.09337,"id":"940GZZLUBOR"},{"n":"Boston Manor","z":"4","l":["Piccadilly"],"lat":51.49564,"lon":-0.32494,"id":"940GZZLUBOS"},{"n":"Bounds Green","z":"3+4","l":["Piccadilly"],"lat":51.60703,"lon":-0.12423,"id":"940GZZLUBDS"},{"n":"Bow Road","z":"2","l":["District","Hammersmith & City"],"lat":51.52694,"lon":-0.02513,"id":"940GZZLUBWR"},{"n":"Brent Cross","z":"3","l":["Northern"],"lat":51.57665,"lon":-0.21362,"id":"940GZZLUBTX"},{"n":"Brixton","z":"2","l":["Victoria"],"lat":51.46262,"lon":-0.11489,"id":"940GZZLUBXN"},{"n":"Bromley-by-Bow","z":"2/3","l":["District","Hammersmith & City"],"lat":51.52484,"lon":-0.01154,"id":"940GZZLUBBB"},{"n":"Buckhurst Hill","z":"5","l":["Central"],"lat":51.6266,"lon":0.04676,"id":"940GZZLUBKH"},{"n":"Burnt Oak","z":"4","l":["Northern"],"lat":51.60277,"lon":-0.26405,"id":"940GZZLUBTK"},{"n":"Caledonian Road","z":"2","l":["Piccadilly"],"lat":51.54852,"lon":-0.11849,"id":"940GZZLUCAR"},{"n":"Camden Town","z":"2","l":["Northern"],"lat":51.53929,"lon":-0.14274,"id":"940GZZLUCTN"},{"n":"Canada Water","z":"2","l":["Jubilee"],"lat":51.49793,"lon":-0.0494,"id":"940GZZLUCWR"},{"n":"Canary Wharf","z":"2","l":["Jubilee"],"lat":51.50349,"lon":-0.01825,"id":"940GZZLUCYF"},{"n":"Canning Town","z":"2/3","l":["Jubilee"],"lat":51.51358,"lon":0.00832,"id":"940GZZLUCGT"},{"n":"Cannon Street","z":"1","l":["Circle","District"],"lat":51.51151,"lon":-0.09043,"id":"940GZZLUCST"},{"n":"Canons Park","z":"5","l":["Jubilee"],"lat":51.6077,"lon":-0.29469,"id":"940GZZLUCPK"},{"n":"Chalfont & Latimer","z":"8","l":["Metropolitan"],"lat":51.66799,"lon":-0.56069,"id":"940GZZLUCAL"},{"n":"Chalk Farm","z":"2","l":["Northern"],"lat":51.54412,"lon":-0.15339,"id":"940GZZLUCFM"},{"n":"Chancery Lane","z":"1","l":["Central"],"lat":51.51825,"lon":-0.11158,"id":"940GZZLUCHL"},{"n":"Charing Cross","z":"1","l":["Bakerloo","Northern"],"lat":51.50741,"lon":-0.12728,"id":"940GZZLUCHX"},{"n":"Chesham","z":"9","l":["Metropolitan"],"lat":51.70521,"lon":-0.61125,"id":"940GZZLUCSM"},{"n":"Chigwell","z":"4","l":["Central"],"lat":51.61792,"lon":0.07504,"id":"940GZZLUCWL"},{"n":"Chiswick Park","z":"3","l":["District"],"lat":51.49463,"lon":-0.26797,"id":"940GZZLUCWP"},{"n":"Chorleywood","z":"7","l":["Metropolitan"],"lat":51.65436,"lon":-0.51846,"id":"940GZZLUCYD"},{"n":"Clapham Common","z":"2","l":["Northern"],"lat":51.46174,"lon":-0.13832,"id":"940GZZLUCPC"},{"n":"Clapham North","z":"2","l":["Northern"],"lat":51.46513,"lon":-0.13002,"id":"940GZZLUCPN"},{"n":"Clapham South","z":"2+3","l":["Northern"],"lat":51.45265,"lon":-0.14758,"id":"940GZZLUCPS"},{"n":"Cockfosters","z":"5","l":["Piccadilly"],"lat":51.65152,"lon":-0.14917,"id":"940GZZLUCKS"},{"n":"Colindale","z":"4","l":["Northern"],"lat":51.59542,"lon":-0.24992,"id":"940GZZLUCND"},{"n":"Colliers Wood","z":"3","l":["Northern"],"lat":51.41816,"lon":-0.17809,"id":"940GZZLUCSD"},{"n":"Covent Garden","z":"1","l":["Piccadilly"],"lat":51.51309,"lon":-0.12444,"id":"940GZZLUCGN"},{"n":"Croxley","z":"7","l":["Metropolitan"],"lat":51.64704,"lon":-0.44172,"id":"940GZZLUCXY"},{"n":"Dagenham East","z":"5","l":["District"],"lat":51.5441,"lon":0.16602,"id":"940GZZLUDGE"},{"n":"Dagenham Heathway","z":"5","l":["District"],"lat":51.54164,"lon":0.14753,"id":"940GZZLUDGY"},{"n":"Debden","z":"6","l":["Central"],"lat":51.64539,"lon":0.08378,"id":"940GZZLUDBN"},{"n":"Dollis Hill","z":"3","l":["Jubilee"],"lat":51.55195,"lon":-0.23907,"id":"940GZZLUDOH"},{"n":"Ealing Broadway","z":"3","l":["Central","District"],"lat":51.51502,"lon":-0.30146,"id":"940GZZLUEBY"},{"n":"Ealing Common","z":"3","l":["District","Piccadilly"],"lat":51.51014,"lon":-0.28826,"id":"940GZZLUECM"},{"n":"Earl's Court","z":"1+2","l":["District","Piccadilly"],"lat":51.49206,"lon":-0.19338,"id":"940GZZLUECT"},{"n":"East Acton","z":"2","l":["Central"],"lat":51.51661,"lon":-0.24725,"id":"940GZZLUEAN"},{"n":"East Finchley","z":"3","l":["Northern"],"lat":51.58713,"lon":-0.16501,"id":"940GZZLUEFY"},{"n":"East Ham","z":"3+4","l":["District","Hammersmith & City"],"lat":51.53895,"lon":0.05119,"id":"940GZZLUEHM"},{"n":"East Putney","z":"2+3","l":["District"],"lat":51.4592,"lon":-0.211,"id":"940GZZLUEPY"},{"n":"Eastcote","z":"5","l":["Metropolitan","Piccadilly"],"lat":51.57651,"lon":-0.39737,"id":"940GZZLUEAE"},{"n":"Edgware","z":"5","l":["Northern"],"lat":51.61365,"lon":-0.27493,"id":"940GZZLUEGW"},{"n":"Edgware Road (Bakerloo)","z":"1","l":["Bakerloo"],"lat":51.5203,"lon":-0.17015,"id":"940GZZLUERB"},{"n":"Edgware Road (Circle Line)","z":"1","l":["Circle","District","Hammersmith & City"],"lat":51.51986,"lon":-0.16783,"id":"940GZZLUERC"},{"n":"Elephant & Castle","z":"1+2","l":["Bakerloo","Northern"],"lat":51.49454,"lon":-0.10061,"id":"940GZZLUEAC"},{"n":"Elm Park","z":"6","l":["District"],"lat":51.54977,"lon":0.19864,"id":"940GZZLUEPK"},{"n":"Embankment","z":"1","l":["Bakerloo","Circle","District","Northern"],"lat":51.50706,"lon":-0.12267,"id":"940GZZLUEMB"},{"n":"Epping","z":"6","l":["Central"],"lat":51.69368,"lon":0.11377,"id":"940GZZLUEPG"},{"n":"Euston","z":"1","l":["Northern","Victoria"],"lat":51.528,"lon":-0.13378,"id":"940GZZLUEUS"},{"n":"Euston Square","z":"1","l":["Circle","Hammersmith & City","Metropolitan"],"lat":51.5256,"lon":-0.13583,"id":"940GZZLUESQ"},{"n":"Fairlop","z":"4","l":["Central"],"lat":51.59562,"lon":0.091,"id":"940GZZLUFLP"},{"n":"Farringdon","z":"1","l":["Circle","Hammersmith & City","Metropolitan"],"lat":51.52025,"lon":-0.10491,"id":"940GZZLUFCN"},{"n":"Finchley Central","z":"4","l":["Northern"],"lat":51.60092,"lon":-0.19253,"id":"940GZZLUFYC"},{"n":"Finchley Road","z":"2","l":["Jubilee","Metropolitan"],"lat":51.54682,"lon":-0.17985,"id":"940GZZLUFYR"},{"n":"Finsbury Park","z":"2","l":["Piccadilly","Victoria"],"lat":51.56416,"lon":-0.10683,"id":"940GZZLUFPK"},{"n":"Fulham Broadway","z":"2","l":["District"],"lat":51.48008,"lon":-0.19542,"id":"940GZZLUFBY"},{"n":"Gants Hill","z":"4","l":["Central"],"lat":51.57654,"lon":0.06618,"id":"940GZZLUGTH"},{"n":"Gloucester Road","z":"1","l":["Circle","District","Piccadilly"],"lat":51.49432,"lon":-0.18266,"id":"940GZZLUGTR"},{"n":"Golders Green","z":"3","l":["Northern"],"lat":51.57226,"lon":-0.19404,"id":"940GZZLUGGN"},{"n":"Goldhawk Road","z":"2","l":["Circle","Hammersmith & City"],"lat":51.502,"lon":-0.22671,"id":"940GZZLUGHK"},{"n":"Goodge Street","z":"1","l":["Northern"],"lat":51.5206,"lon":-0.13436,"id":"940GZZLUGDG"},{"n":"Grange Hill","z":"4","l":["Central"],"lat":51.61338,"lon":0.09207,"id":"940GZZLUGGH"},{"n":"Great Portland Street","z":"1","l":["Circle","Hammersmith & City","Metropolitan"],"lat":51.52384,"lon":-0.14426,"id":"940GZZLUGPS"},{"n":"Green Park","z":"1","l":["Jubilee","Piccadilly","Victoria"],"lat":51.50695,"lon":-0.14279,"id":"940GZZLUGPK"},{"n":"Greenford","z":"4","l":["Central"],"lat":51.54242,"lon":-0.34605,"id":"940GZZLUGFD"},{"n":"Gunnersbury","z":"3","l":["District"],"lat":51.4918,"lon":-0.27527,"id":"940GZZLUGBY"},{"n":"Hainault","z":"4","l":["Central"],"lat":51.60366,"lon":0.09348,"id":"940GZZLUHLT"},{"n":"Hammersmith (Dist&Picc Line)","z":"2","l":["District","Piccadilly"],"lat":51.4923,"lon":-0.22362,"id":"940GZZLUHSD"},{"n":"Hammersmith (H&C Line)","z":"2","l":["Circle","Hammersmith & City"],"lat":51.49339,"lon":-0.22503,"id":"940GZZLUHSC"},{"n":"Hampstead","z":"2+3","l":["Northern"],"lat":51.55624,"lon":-0.17746,"id":"940GZZLUHTD"},{"n":"Hanger Lane","z":"3","l":["Central"],"lat":51.53018,"lon":-0.2927,"id":"940GZZLUHGR"},{"n":"Harlesden","z":"3","l":["Bakerloo"],"lat":51.53631,"lon":-0.25788,"id":"940GZZLUHSN"},{"n":"Harrow & Wealdstone","z":"5","l":["Bakerloo"],"lat":51.59227,"lon":-0.33522,"id":"940GZZLUHAW"},{"n":"Harrow-on-the-Hill","z":"5","l":["Metropolitan"],"lat":51.57919,"lon":-0.33722,"id":"940GZZLUHOH"},{"n":"Hatton Cross","z":"5+6","l":["Piccadilly"],"lat":51.46675,"lon":-0.42319,"id":"940GZZLUHNX"},{"n":"Heathrow Terminal 4","z":"6","l":["Piccadilly"],"lat":51.45852,"lon":-0.44577,"id":"940GZZLUHR4"},{"n":"Heathrow Terminal 5","z":"6","l":["Piccadilly"],"lat":51.47005,"lon":-0.49056,"id":"940GZZLUHR5"},{"n":"Heathrow Terminals 2 & 3","z":"6","l":["Piccadilly"],"lat":51.47124,"lon":-0.45226,"id":"940GZZLUHRC"},{"n":"Hendon Central","z":"3+4","l":["Northern"],"lat":51.5833,"lon":-0.22642,"id":"940GZZLUHCL"},{"n":"High Barnet","z":"5","l":["Northern"],"lat":51.65054,"lon":-0.1943,"id":"940GZZLUHBT"},{"n":"High Street Kensington","z":"1","l":["Circle","District"],"lat":51.50106,"lon":-0.19279,"id":"940GZZLUHSK"},{"n":"Highbury & Islington","z":"2","l":["Victoria"],"lat":51.54635,"lon":-0.10332,"id":"940GZZLUHAI"},{"n":"Highgate","z":"3","l":["Northern"],"lat":51.57753,"lon":-0.14586,"id":"940GZZLUHGT"},{"n":"Hillingdon","z":"6","l":["Metropolitan","Piccadilly"],"lat":51.55371,"lon":-0.44983,"id":"940GZZLUHGD"},{"n":"Holborn","z":"1","l":["Central","Piccadilly"],"lat":51.51758,"lon":-0.12047,"id":"940GZZLUHBN"},{"n":"Holland Park","z":"2","l":["Central"],"lat":51.50714,"lon":-0.20568,"id":"940GZZLUHPK"},{"n":"Holloway Road","z":"2","l":["Piccadilly"],"lat":51.5527,"lon":-0.11324,"id":"940GZZLUHWY"},{"n":"Hornchurch","z":"6","l":["District"],"lat":51.55409,"lon":0.21912,"id":"940GZZLUHCH"},{"n":"Hounslow Central","z":"4","l":["Piccadilly"],"lat":51.47129,"lon":-0.36658,"id":"940GZZLUHWC"},{"n":"Hounslow East","z":"4","l":["Piccadilly"],"lat":51.47321,"lon":-0.35647,"id":"940GZZLUHWE"},{"n":"Hounslow West","z":"5","l":["Piccadilly"],"lat":51.47347,"lon":-0.38654,"id":"940GZZLUHWT"},{"n":"Hyde Park Corner","z":"1","l":["Piccadilly"],"lat":51.50303,"lon":-0.15244,"id":"940GZZLUHPC"},{"n":"Ickenham","z":"6","l":["Metropolitan","Piccadilly"],"lat":51.56177,"lon":-0.44222,"id":"940GZZLUICK"},{"n":"Kennington","z":"1+2","l":["Northern"],"lat":51.48834,"lon":-0.10596,"id":"940GZZLUKNG"},{"n":"Kensal Green","z":"2","l":["Bakerloo"],"lat":51.53054,"lon":-0.22502,"id":"940GZZLUKSL"},{"n":"Kensington (Olympia)","z":"2","l":["District"],"lat":51.49762,"lon":-0.21002,"id":"940GZZLUKOY"},{"n":"Kentish Town","z":"2","l":["Northern"],"lat":51.55031,"lon":-0.14073,"id":"940GZZLUKSH"},{"n":"Kenton","z":"4","l":["Bakerloo"],"lat":51.58176,"lon":-0.31691,"id":"940GZZLUKEN"},{"n":"Kew Gardens","z":"3+4","l":["District"],"lat":51.47706,"lon":-0.28524,"id":"940GZZLUKWG"},{"n":"Kilburn","z":"2","l":["Jubilee"],"lat":51.54718,"lon":-0.20425,"id":"940GZZLUKBN"},{"n":"Kilburn Park","z":"2","l":["Bakerloo"],"lat":51.53498,"lon":-0.19423,"id":"940GZZLUKPK"},{"n":"King's Cross St. Pancras","z":"1","l":["Circle","Hammersmith & City","Metropolitan","Northern","Piccadilly","Victoria"],"lat":51.53066,"lon":-0.12319,"id":"940GZZLUKSX"},{"n":"Kingsbury","z":"4","l":["Jubilee"],"lat":51.58485,"lon":-0.27879,"id":"940GZZLUKBY"},{"n":"Knightsbridge","z":"1","l":["Piccadilly"],"lat":51.50167,"lon":-0.16051,"id":"940GZZLUKNB"},{"n":"Ladbroke Grove","z":"2","l":["Circle","Hammersmith & City"],"lat":51.51745,"lon":-0.21039,"id":"940GZZLULAD"},{"n":"Lambeth North","z":"1","l":["Bakerloo"],"lat":51.49881,"lon":-0.11231,"id":"940GZZLULBN"},{"n":"Lancaster Gate","z":"1","l":["Central"],"lat":51.51172,"lon":-0.17549,"id":"940GZZLULGT"},{"n":"Latimer Road","z":"2","l":["Circle","Hammersmith & City"],"lat":51.51339,"lon":-0.2178,"id":"940GZZLULRD"},{"n":"Leicester Square","z":"1","l":["Northern","Piccadilly"],"lat":51.51139,"lon":-0.12843,"id":"940GZZLULSQ"},{"n":"Leyton","z":"3","l":["Central"],"lat":51.55659,"lon":-0.00552,"id":"940GZZLULYN"},{"n":"Leytonstone","z":"3+4","l":["Central"],"lat":51.56832,"lon":0.00819,"id":"940GZZLULYS"},{"n":"Liverpool Street","z":"1","l":["Central","Circle","Hammersmith & City","Metropolitan"],"lat":51.51737,"lon":-0.08318,"id":"940GZZLULVT"},{"n":"London Bridge","z":"1","l":["Jubilee","Northern"],"lat":51.50572,"lon":-0.08887,"id":"940GZZLULNB"},{"n":"Loughton","z":"6","l":["Central"],"lat":51.64144,"lon":0.05548,"id":"940GZZLULGN"},{"n":"Maida Vale","z":"2","l":["Bakerloo"],"lat":51.52978,"lon":-0.18576,"id":"940GZZLUMVL"},{"n":"Manor House","z":"2+3","l":["Piccadilly"],"lat":51.57074,"lon":-0.09612,"id":"940GZZLUMRH"},{"n":"Mansion House","z":"1","l":["Circle","District"],"lat":51.51212,"lon":-0.09401,"id":"940GZZLUMSH"},{"n":"Marble Arch","z":"1","l":["Central"],"lat":51.51342,"lon":-0.15895,"id":"940GZZLUMBA"},{"n":"Marylebone","z":"1","l":["Bakerloo"],"lat":51.52232,"lon":-0.16321,"id":"940GZZLUMYB"},{"n":"Mile End","z":"2","l":["Central","District","Hammersmith & City"],"lat":51.52512,"lon":-0.03364,"id":"940GZZLUMED"},{"n":"Mill Hill East","z":"4","l":["Northern"],"lat":51.60823,"lon":-0.20999,"id":"940GZZLUMHL"},{"n":"Monument","z":"1","l":["Circle","District"],"lat":51.5107,"lon":-0.08597,"id":"940GZZLUMMT"},{"n":"Moor Park","z":"6+7","l":["Metropolitan"],"lat":51.62985,"lon":-0.43245,"id":"940GZZLUMPK"},{"n":"Moorgate","z":"1","l":["Circle","Hammersmith & City","Metropolitan","Northern"],"lat":51.51818,"lon":-0.08832,"id":"940GZZLUMGT"},{"n":"Morden","z":"4","l":["Northern"],"lat":51.40214,"lon":-0.19484,"id":"940GZZLUMDN"},{"n":"Mornington Crescent","z":"2","l":["Northern"],"lat":51.53468,"lon":-0.13879,"id":"940GZZLUMTC"},{"n":"Neasden","z":"3","l":["Jubilee"],"lat":51.55399,"lon":-0.24984,"id":"940GZZLUNDN"},{"n":"Newbury Park","z":"4","l":["Central"],"lat":51.57573,"lon":0.09,"id":"940GZZLUNBP"},{"n":"Nine Elms","z":"1","l":["Northern"],"lat":51.47991,"lon":-0.12848,"id":"940GZZNEUGST"},{"n":"North Acton","z":"2+3","l":["Central"],"lat":51.52352,"lon":-0.25976,"id":"940GZZLUNAN"},{"n":"North Ealing","z":"3","l":["Piccadilly"],"lat":51.5175,"lon":-0.28887,"id":"940GZZLUNEN"},{"n":"North Greenwich","z":"2/3","l":["Jubilee"],"lat":51.50047,"lon":0.00429,"id":"940GZZLUNGW"},{"n":"North Harrow","z":"5","l":["Metropolitan"],"lat":51.58487,"lon":-0.36241,"id":"940GZZLUNHA"},{"n":"North Wembley","z":"4","l":["Bakerloo"],"lat":51.56255,"lon":-0.304,"id":"940GZZLUNWY"},{"n":"Northfields","z":"3","l":["Piccadilly"],"lat":51.49932,"lon":-0.31472,"id":"940GZZLUNFD"},{"n":"Northolt","z":"5","l":["Central"],"lat":51.54824,"lon":-0.3687,"id":"940GZZLUNHT"},{"n":"Northwick Park","z":"4","l":["Metropolitan"],"lat":51.57848,"lon":-0.31806,"id":"940GZZLUNKP"},{"n":"Northwood","z":"6","l":["Metropolitan"],"lat":51.61105,"lon":-0.42383,"id":"940GZZLUNOW"},{"n":"Northwood Hills","z":"6","l":["Metropolitan"],"lat":51.60057,"lon":-0.40946,"id":"940GZZLUNWH"},{"n":"Notting Hill Gate","z":"1+2","l":["Central","Circle","District"],"lat":51.50913,"lon":-0.1961,"id":"940GZZLUNHG"},{"n":"Oakwood","z":"5","l":["Piccadilly"],"lat":51.64773,"lon":-0.13218,"id":"940GZZLUOAK"},{"n":"Old Street","z":"1","l":["Northern"],"lat":51.52586,"lon":-0.08777,"id":"940GZZLUODS"},{"n":"Osterley","z":"4","l":["Piccadilly"],"lat":51.48127,"lon":-0.35222,"id":"940GZZLUOSY"},{"n":"Oval","z":"2","l":["Northern"],"lat":51.48185,"lon":-0.11244,"id":"940GZZLUOVL"},{"n":"Oxford Circus","z":"1","l":["Bakerloo","Central","Victoria"],"lat":51.51522,"lon":-0.1419,"id":"940GZZLUOXC"},{"n":"Paddington","z":"1","l":["Bakerloo","Circle","District"],"lat":51.51658,"lon":-0.17569,"id":"940GZZLUPAC"},{"n":"Paddington (H&C Line)-Underground","z":"1","l":["Circle","Hammersmith & City"],"lat":51.51819,"lon":-0.17831,"id":"940GZZLUPAH"},{"n":"Park Royal","z":"3","l":["Piccadilly"],"lat":51.52712,"lon":-0.28434,"id":"940GZZLUPKR"},{"n":"Parsons Green","z":"2","l":["District"],"lat":51.47528,"lon":-0.20117,"id":"940GZZLUPSG"},{"n":"Perivale","z":"4","l":["Central"],"lat":51.53672,"lon":-0.32345,"id":"940GZZLUPVL"},{"n":"Piccadilly Circus","z":"1","l":["Bakerloo","Piccadilly"],"lat":51.51005,"lon":-0.1338,"id":"940GZZLUPCC"},{"n":"Pimlico","z":"1","l":["Victoria"],"lat":51.4891,"lon":-0.13376,"id":"940GZZLUPCO"},{"n":"Pinner","z":"5","l":["Metropolitan"],"lat":51.5929,"lon":-0.38116,"id":"940GZZLUPNR"},{"n":"Plaistow","z":"3","l":["District","Hammersmith & City"],"lat":51.53134,"lon":0.01745,"id":"940GZZLUPLW"},{"n":"Preston Road","z":"4","l":["Metropolitan"],"lat":51.57197,"lon":-0.29511,"id":"940GZZLUPRD"},{"n":"Putney Bridge","z":"2","l":["District"],"lat":51.46826,"lon":-0.20873,"id":"940GZZLUPYB"},{"n":"Queen's Park","z":"2","l":["Bakerloo"],"lat":51.53416,"lon":-0.20457,"id":"940GZZLUQPS"},{"n":"Queensbury","z":"4","l":["Jubilee"],"lat":51.59419,"lon":-0.28622,"id":"940GZZLUQBY"},{"n":"Queensway","z":"1","l":["Central"],"lat":51.51031,"lon":-0.18715,"id":"940GZZLUQWY"},{"n":"Ravenscourt Park","z":"2","l":["District"],"lat":51.49412,"lon":-0.23588,"id":"940GZZLURVP"},{"n":"Rayners Lane","z":"5","l":["Metropolitan","Piccadilly"],"lat":51.57515,"lon":-0.37113,"id":"940GZZLURYL"},{"n":"Redbridge","z":"4","l":["Central"],"lat":51.57624,"lon":0.04536,"id":"940GZZLURBG"},{"n":"Regent's Park","z":"1","l":["Bakerloo"],"lat":51.52334,"lon":-0.14644,"id":"940GZZLURGP"},{"n":"Richmond","z":"4","l":["District"],"lat":51.46324,"lon":-0.30134,"id":"940GZZLURMD"},{"n":"Rickmansworth","z":"7","l":["Metropolitan"],"lat":51.64021,"lon":-0.4737,"id":"940GZZLURKW"},{"n":"Roding Valley","z":"4","l":["Central"],"lat":51.6172,"lon":0.04365,"id":"940GZZLURVY"},{"n":"Royal Oak","z":"2","l":["Circle","Hammersmith & City"],"lat":51.51911,"lon":-0.18875,"id":"940GZZLURYO"},{"n":"Ruislip","z":"6","l":["Metropolitan","Piccadilly"],"lat":51.57135,"lon":-0.4219,"id":"940GZZLURSP"},{"n":"Ruislip Gardens","z":"5","l":["Central"],"lat":51.56074,"lon":-0.41071,"id":"940GZZLURSG"},{"n":"Ruislip Manor","z":"6","l":["Metropolitan","Piccadilly"],"lat":51.5732,"lon":-0.41297,"id":"940GZZLURSM"},{"n":"Russell Square","z":"1","l":["Piccadilly"],"lat":51.52307,"lon":-0.12429,"id":"940GZZLURSQ"},{"n":"Seven Sisters","z":"3","l":["Victoria"],"lat":51.58333,"lon":-0.07258,"id":"940GZZLUSVS"},{"n":"Shepherd's Bush (Central)","z":"2","l":["Central"],"lat":51.50438,"lon":-0.21881,"id":"940GZZLUSBC"},{"n":"Shepherd's Bush Market","z":"2","l":["Circle","Hammersmith & City"],"lat":51.50558,"lon":-0.22637,"id":"940GZZLUSBM"},{"n":"Sloane Square","z":"1","l":["Circle","District"],"lat":51.49227,"lon":-0.15638,"id":"940GZZLUSSQ"},{"n":"Snaresbrook","z":"4","l":["Central"],"lat":51.58068,"lon":0.02144,"id":"940GZZLUSNB"},{"n":"South Ealing","z":"3","l":["Piccadilly"],"lat":51.501,"lon":-0.30742,"id":"940GZZLUSEA"},{"n":"South Harrow","z":"5","l":["Piccadilly"],"lat":51.56489,"lon":-0.35249,"id":"940GZZLUSHH"},{"n":"South Kensington","z":"1","l":["Circle","District","Piccadilly"],"lat":51.49409,"lon":-0.17414,"id":"940GZZLUSKS"},{"n":"South Kenton","z":"4","l":["Bakerloo"],"lat":51.57023,"lon":-0.30843,"id":"940GZZLUSKT"},{"n":"South Ruislip","z":"5","l":["Central"],"lat":51.55685,"lon":-0.39892,"id":"940GZZLUSRP"},{"n":"South Wimbledon","z":"3+4","l":["Northern"],"lat":51.41531,"lon":-0.19201,"id":"940GZZLUSWN"},{"n":"South Woodford","z":"4","l":["Central"],"lat":51.59191,"lon":0.02734,"id":"940GZZLUSWF"},{"n":"Southfields","z":"3","l":["District"],"lat":51.44507,"lon":-0.2066,"id":"940GZZLUSFS"},{"n":"Southgate","z":"4","l":["Piccadilly"],"lat":51.63231,"lon":-0.12782,"id":"940GZZLUSGT"},{"n":"Southwark","z":"1","l":["Jubilee"],"lat":51.50427,"lon":-0.10533,"id":"940GZZLUSWK"},{"n":"St. James's Park","z":"1","l":["Circle","District"],"lat":51.49954,"lon":-0.13361,"id":"940GZZLUSJP"},{"n":"St. John's Wood","z":"2","l":["Jubilee"],"lat":51.53452,"lon":-0.17395,"id":"940GZZLUSJW"},{"n":"St. Paul's","z":"1","l":["Central"],"lat":51.51494,"lon":-0.09757,"id":"940GZZLUSPU"},{"n":"Stamford Brook","z":"2","l":["District"],"lat":51.49492,"lon":-0.2457,"id":"940GZZLUSFB"},{"n":"Stanmore","z":"5","l":["Jubilee"],"lat":51.61984,"lon":-0.30327,"id":"940GZZLUSTM"},{"n":"Stepney Green","z":"2","l":["District","Hammersmith & City"],"lat":51.52186,"lon":-0.0466,"id":"940GZZLUSGN"},{"n":"Stockwell","z":"2","l":["Northern","Victoria"],"lat":51.47218,"lon":-0.12264,"id":"940GZZLUSKW"},{"n":"Stonebridge Park","z":"3","l":["Bakerloo"],"lat":51.54396,"lon":-0.27589,"id":"940GZZLUSGP"},{"n":"Stratford","z":"2/3","l":["Central","Jubilee"],"lat":51.54181,"lon":-0.00346,"id":"940GZZLUSTD"},{"n":"Sudbury Hill","z":"4","l":["Piccadilly"],"lat":51.55695,"lon":-0.33643,"id":"940GZZLUSUH"},{"n":"Sudbury Town","z":"4","l":["Piccadilly"],"lat":51.55082,"lon":-0.31574,"id":"940GZZLUSUT"},{"n":"Swiss Cottage","z":"2","l":["Jubilee"],"lat":51.54368,"lon":-0.17489,"id":"940GZZLUSWC"},{"n":"Temple","z":"1","l":["Circle","District"],"lat":51.51101,"lon":-0.11426,"id":"940GZZLUTMP"},{"n":"Theydon Bois","z":"6","l":["Central"],"lat":51.67176,"lon":0.10308,"id":"940GZZLUTHB"},{"n":"Tooting Bec","z":"3","l":["Northern"],"lat":51.43568,"lon":-0.15974,"id":"940GZZLUTBC"},{"n":"Tooting Broadway","z":"3","l":["Northern"],"lat":51.42763,"lon":-0.16837,"id":"940GZZLUTBY"},{"n":"Tottenham Court Road","z":"1","l":["Central","Northern"],"lat":51.51643,"lon":-0.13041,"id":"940GZZLUTCR"},{"n":"Tottenham Hale","z":"3","l":["Victoria"],"lat":51.58811,"lon":-0.06024,"id":"940GZZLUTMH"},{"n":"Totteridge & Whetstone","z":"4","l":["Northern"],"lat":51.6306,"lon":-0.17921,"id":"940GZZLUTAW"},{"n":"Tower Hill","z":"1","l":["Circle","District"],"lat":51.50997,"lon":-0.07655,"id":"940GZZLUTWH"},{"n":"Tufnell Park","z":"2","l":["Northern"],"lat":51.55682,"lon":-0.13843,"id":"940GZZLUTFP"},{"n":"Turnham Green","z":"2+3","l":["District","Piccadilly"],"lat":51.49515,"lon":-0.25455,"id":"940GZZLUTNG"},{"n":"Turnpike Lane","z":"3","l":["Piccadilly"],"lat":51.59027,"lon":-0.10295,"id":"940GZZLUTPN"},{"n":"Upminster","z":"6","l":["District"],"lat":51.55906,"lon":0.25088,"id":"940GZZLUUPM"},{"n":"Upminster Bridge","z":"6","l":["District"],"lat":51.55856,"lon":0.23581,"id":"940GZZLUUPB"},{"n":"Upney","z":"4","l":["District"],"lat":51.53837,"lon":0.10153,"id":"940GZZLUUPY"},{"n":"Upton Park","z":"3","l":["District","Hammersmith & City"],"lat":51.53534,"lon":0.03526,"id":"940GZZLUUPK"},{"n":"Uxbridge","z":"6","l":["Metropolitan","Piccadilly"],"lat":51.54657,"lon":-0.47795,"id":"940GZZLUUXB"},{"n":"Vauxhall","z":"1+2","l":["Victoria"],"lat":51.48574,"lon":-0.1242,"id":"940GZZLUVXL"},{"n":"Victoria","z":"1","l":["Circle","District","Victoria"],"lat":51.49636,"lon":-0.1431,"id":"940GZZLUVIC"},{"n":"Walthamstow Central","z":"3","l":["Victoria"],"lat":51.58297,"lon":-0.01988,"id":"940GZZLUWWL"},{"n":"Wanstead","z":"4","l":["Central"],"lat":51.5755,"lon":0.02853,"id":"940GZZLUWSD"},{"n":"Warren Street","z":"1","l":["Northern","Victoria"],"lat":51.52495,"lon":-0.13832,"id":"940GZZLUWRR"},{"n":"Warwick Avenue","z":"2","l":["Bakerloo"],"lat":51.52326,"lon":-0.18378,"id":"940GZZLUWKA"},{"n":"Waterloo","z":"1","l":["Bakerloo","Jubilee","Northern","Waterloo & City"],"lat":51.5033,"lon":-0.11478,"id":"940GZZLUWLO"},{"n":"Watford","z":"7","l":["Metropolitan"],"lat":51.65745,"lon":-0.41738,"id":"940GZZLUWAF"},{"n":"Wembley Central","z":"4","l":["Bakerloo"],"lat":51.5523,"lon":-0.29685,"id":"940GZZLUWYC"},{"n":"Wembley Park","z":"4","l":["Jubilee","Metropolitan"],"lat":51.5632,"lon":-0.27926,"id":"940GZZLUWYP"},{"n":"West Acton","z":"3","l":["Central"],"lat":51.518,"lon":-0.28098,"id":"940GZZLUWTA"},{"n":"West Brompton","z":"2","l":["District"],"lat":51.48727,"lon":-0.1956,"id":"940GZZLUWBN"},{"n":"West Finchley","z":"4","l":["Northern"],"lat":51.60943,"lon":-0.18836,"id":"940GZZLUWFN"},{"n":"West Ham","z":"2/3","l":["District","Hammersmith & City","Jubilee"],"lat":51.52814,"lon":0.00505,"id":"940GZZLUWHM"},{"n":"West Hampstead","z":"2","l":["Jubilee"],"lat":51.54664,"lon":-0.19106,"id":"940GZZLUWHP"},{"n":"West Harrow","z":"5","l":["Metropolitan"],"lat":51.57971,"lon":-0.3534,"id":"940GZZLUWHW"},{"n":"West Kensington","z":"2","l":["District"],"lat":51.49046,"lon":-0.20664,"id":"940GZZLUWKN"},{"n":"West Ruislip","z":"6","l":["Central"],"lat":51.56969,"lon":-0.43789,"id":"940GZZLUWRP"},{"n":"Westbourne Park","z":"2","l":["Circle","Hammersmith & City"],"lat":51.52111,"lon":-0.20106,"id":"940GZZLUWSP"},{"n":"Westminster","z":"1","l":["Circle","District","Jubilee"],"lat":51.50132,"lon":-0.12486,"id":"940GZZLUWSM"},{"n":"White City","z":"2","l":["Central"],"lat":51.51196,"lon":-0.2243,"id":"940GZZLUWCY"},{"n":"Whitechapel","z":"2","l":["District","Hammersmith & City"],"lat":51.51952,"lon":-0.05997,"id":"940GZZLUWPL"},{"n":"Willesden Green","z":"2+3","l":["Jubilee","Metropolitan"],"lat":51.54915,"lon":-0.22154,"id":"940GZZLUWIG"},{"n":"Willesden Junction","z":"2+3","l":["Bakerloo"],"lat":51.53226,"lon":-0.24428,"id":"940GZZLUWJN"},{"n":"Wimbledon","z":"3","l":["District"],"lat":51.42121,"lon":-0.20657,"id":"940GZZLUWIM"},{"n":"Wimbledon Park","z":"3","l":["District"],"lat":51.43457,"lon":-0.19972,"id":"940GZZLUWIP"},{"n":"Wood Green","z":"3","l":["Piccadilly"],"lat":51.59748,"lon":-0.10989,"id":"940GZZLUWOG"},{"n":"Wood Lane","z":"2","l":["Circle","Hammersmith & City"],"lat":51.50967,"lon":-0.22453,"id":"940GZZLUWLA"},{"n":"Woodford","z":"4","l":["Central"],"lat":51.6069,"lon":0.03397,"id":"940GZZLUWOF"},{"n":"Woodside Park","z":"4","l":["Northern"],"lat":51.61801,"lon":-0.18542,"id":"940GZZLUWOP"}];
+
+    const TUBE_LINES = [
+      { id: 'bakerloo', name: 'Bakerloo', color: 'var(--line-bakerloo)', class: 'badge-bakerloo' },
+      { id: 'central', name: 'Central', color: 'var(--line-central)', class: 'badge-central' },
+      { id: 'circle', name: 'Circle', color: 'var(--line-circle)', class: 'badge-circle' },
+      { id: 'district', name: 'District', color: 'var(--line-district)', class: 'badge-district' },
+      { id: 'hammersmith-city', name: 'Hammersmith & City', color: 'var(--line-hammersmith)', class: 'badge-hammersmith' },
+      { id: 'jubilee', name: 'Jubilee', color: 'var(--line-jubilee)', class: 'badge-jubilee' },
+      { id: 'metropolitan', name: 'Metropolitan', color: 'var(--line-metropolitan)', class: 'badge-metropolitan' },
+      { id: 'northern', name: 'Northern', color: 'var(--line-northern)', class: 'badge-northern' },
+      { id: 'piccadilly', name: 'Piccadilly', color: 'var(--line-piccadilly)', class: 'badge-piccadilly' },
+      { id: 'victoria', name: 'Victoria', color: 'var(--line-victoria)', class: 'badge-victoria' },
+      { id: 'waterloo-city', name: 'Waterloo & City', color: 'var(--line-waterloo)', class: 'badge-waterloo' }
+    ];
+
+    // Helper: Normalize station name for robust matching
+    function normalizeStationName(name) {
+      if (!name) return '';
+      return name.toLowerCase()
+        .replace(/&/g, 'and')
+        .replace(/[''’`\.\-\/\(\)]/g, '')
+        .replace(/underground station/g, '')
+        .replace(/station/g, '')
+        .replace(/\s+/g, '')
+        .trim();
+    }
+
+    // Pre-build normalized lookup map
+    const STATION_LOOKUP = new Map();
+    STATIONS.forEach(s => {
+      const norm = normalizeStationName(s.n);
+      STATION_LOOKUP.set(norm, s);
+    });
+
+    // Helper for line styling
+    function getLineBadgeClass(lineName) {
+      const lower = lineName.toLowerCase();
+      if (lower.includes('bakerloo')) return 'badge-bakerloo';
+      if (lower.includes('central')) return 'badge-central';
+      if (lower.includes('circle')) return 'badge-circle';
+      if (lower.includes('district')) return 'badge-district';
+      if (lower.includes('hammersmith')) return 'badge-hammersmith';
+      if (lower.includes('jubilee')) return 'badge-jubilee';
+      if (lower.includes('metropolitan')) return 'badge-metropolitan';
+      if (lower.includes('northern')) return 'badge-northern';
+      if (lower.includes('piccadilly')) return 'badge-piccadilly';
+      if (lower.includes('victoria')) return 'badge-victoria';
+      if (lower.includes('waterloo')) return 'badge-waterloo';
+      return '';
+    }
+
+    // State
+    const AppState = {
+      data: {
+        archivedAnswers: {},
+        completedPuzzles: {}
+      },
+      activeTab: 'frequency',
+      filterLine: 'all',
+      searchFreq: '',
+      sortFreq: 'count-desc',
+      searchUnused: '',
+      filterUnusedLine: 'all',
+      filterUnusedZone: 'all',
+      stats: {
+        totalPuzzles: 0,
+        totalAnswers: 0,
+        uniqueStations: 0,
+        unusedCount: 272,
+        usedStationMap: new Map()
+      }
+    };
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      initTargetUrl();
+      initLinePills();
+      initUnusedFilters();
+      checkUrlQueryParam();
+      loadStoredData();
+      computeStats();
+      renderAll();
+    });
+
+    // Set Target URL for bookmarklet
+    function initTargetUrl() {
+      const input = document.getElementById('targetUrlInput');
+      let target = window.location.origin + window.location.pathname;
+      if (target.startsWith('file://')) {
+        target = 'https://mikeyt23.github.io/tubedoku-map/';
+      }
+      input.value = target;
+      updateBookmarkletCode();
+    }
+
+    function resetTargetUrl() {
+      initTargetUrl();
+      showToast('Reset target URL to default');
+    }
+
+    function updateBookmarkletCode() {
+      const target = document.getElementById('targetUrlInput').value.trim() || 'https://mikeyt23.github.io/tubedoku-map/';
+      const code = `javascript:(function(){try{var ans=localStorage.getItem('archivedAnswers');var comp=localStorage.getItem('completedPuzzles');if(!ans&&!comp){alert('No Tubedoku data found in this browser! Please make sure you are on tubedoku.com.');return;}var payload={archivedAnswers:ans?JSON.parse(ans):{},completedPuzzles:comp?JSON.parse(comp):{},exportedAt:new Date().toISOString()};var json=JSON.stringify(payload);var b64=btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,function(m,p){return String.fromCharCode('0x'+p);}));var target='${target}';window.location.href=target+(target.indexOf('?')===-1?'?':'&')+'data='+encodeURIComponent(b64);}catch(e){alert('Export failed: '+e.message);}})();`;
+      document.getElementById('bookmarkletCodeDisplay').textContent = code;
+    }
+
+    function copyBookmarkletCode() {
+      const code = document.getElementById('bookmarkletCodeDisplay').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        showToast('Bookmarklet code copied to clipboard!');
+      }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('Bookmarklet code copied to clipboard!');
+      });
+    }
+
+    function testBookmarkletLocally() {
+      const code = document.getElementById('bookmarkletCodeDisplay').textContent;
+      try {
+        eval(code.replace('javascript:', ''));
+      } catch (err) {
+        alert('Test notice: ' + err.message);
+      }
+    }
+
+    function toggleGuideDevice(dev) {
+      document.getElementById('btnGuideIos').classList.toggle('active', dev === 'ios');
+      document.getElementById('btnGuideAndroid').classList.toggle('active', dev === 'android');
+      document.getElementById('guideIos').style.display = dev === 'ios' ? 'flex' : 'none';
+      document.getElementById('guideAndroid').style.display = dev === 'android' ? 'flex' : 'none';
+    }
+
+    // Check ?data=... in URL
+    function checkUrlQueryParam() {
+      const params = new URLSearchParams(window.location.search);
+      const dataParam = params.get('data');
+      if (dataParam) {
+        try {
+          let jsonStr = '';
+          try {
+            jsonStr = decodeURIComponent(escape(atob(decodeURIComponent(dataParam))));
+          } catch (e) {
+            jsonStr = atob(dataParam);
+          }
+          const parsed = JSON.parse(jsonStr);
+          if (parsed && (parsed.archivedAnswers || parsed.completedPuzzles)) {
+            AppState.data = {
+              archivedAnswers: parsed.archivedAnswers || {},
+              completedPuzzles: parsed.completedPuzzles || {}
+            };
+            saveStoredData();
+            showToast(`Imported ${Object.keys(AppState.data.archivedAnswers).length} days of Tubedoku history!`);
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        } catch (err) {
+          console.error('Failed to parse URL data parameter:', err);
+          showToast('Failed to import data from URL param');
+        }
+      }
+    }
+
+    // Storage persistence
+    function loadStoredData() {
+      try {
+        const raw = localStorage.getItem('tubedoku_tracker_data');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.archivedAnswers) {
+            AppState.data = parsed;
+          }
+        }
+      } catch (e) {
+        console.warn('Could not read localStorage:', e);
+      }
+    }
+
+    function saveStoredData() {
+      try {
+        localStorage.setItem('tubedoku_tracker_data', JSON.stringify(AppState.data));
+      } catch (e) {
+        console.warn('Could not write localStorage:', e);
+      }
+    }
+
+    function clearAllData() {
+      if (confirm('Are you sure you want to clear all imported Tubedoku data?')) {
+        localStorage.removeItem('tubedoku_tracker_data');
+        AppState.data = { archivedAnswers: {}, completedPuzzles: {} };
+        computeStats();
+        renderAll();
+        showToast('All data cleared');
+      }
+    }
+
+    // Compute stats & frequency
+    function computeStats() {
+      const answers = AppState.data.archivedAnswers || {};
+      const dates = Object.keys(answers);
+      AppState.stats.totalPuzzles = dates.length;
+      AppState.stats.totalAnswers = 0;
+      AppState.stats.usedStationMap = new Map();
+
+      dates.forEach(date => {
+        const grid = answers[date];
+        if (grid && typeof grid === 'object') {
+          Object.entries(grid).forEach(([cell, stationName]) => {
+            if (!stationName || typeof stationName !== 'string') return;
+            const cleanName = stationName.trim();
+            if (!cleanName) return;
+
+            AppState.stats.totalAnswers++;
+            const norm = normalizeStationName(cleanName);
+            const matchedStation = STATION_LOOKUP.get(norm);
+
+            const canonicalName = matchedStation ? matchedStation.n : cleanName;
+            const key = norm || cleanName.toLowerCase();
+
+            if (!AppState.stats.usedStationMap.has(key)) {
+              AppState.stats.usedStationMap.set(key, {
+                name: canonicalName,
+                station: matchedStation || null,
+                count: 0,
+                dates: new Set(),
+                cells: []
+              });
+            }
+
+            const entry = AppState.stats.usedStationMap.get(key);
+            entry.count++;
+            entry.dates.add(date);
+            entry.cells.push(cell);
+          });
+        }
+      });
+
+      AppState.stats.uniqueStations = AppState.stats.usedStationMap.size;
+      AppState.stats.unusedCount = Math.max(0, 272 - AppState.stats.uniqueStations);
+    }
+
+    // Render Stats
+    function renderStats() {
+      const { totalPuzzles, totalAnswers, uniqueStations, unusedCount, usedStationMap } = AppState.stats;
+
+      document.getElementById('statPuzzles').textContent = totalPuzzles.toLocaleString();
+      document.getElementById('statPuzzlesSub').textContent = totalPuzzles === 1 ? '1 day recorded' : `${totalPuzzles} days recorded`;
+      
+      document.getElementById('statAnswers').textContent = totalAnswers.toLocaleString();
+      document.getElementById('statUnique').textContent = uniqueStations.toLocaleString();
+      
+      const pctCoverage = ((uniqueStations / 272) * 100).toFixed(1);
+      document.getElementById('statUniquePct').textContent = `${pctCoverage}% of 272 network`;
+      document.getElementById('statUnused').textContent = unusedCount.toLocaleString();
+
+      document.getElementById('badgeUsedCount').textContent = uniqueStations;
+      document.getElementById('badgeUnusedCount').textContent = unusedCount;
+
+      // Progress bar
+      document.getElementById('coverageText').textContent = `${uniqueStations} / 272 stations (${pctCoverage}%)`;
+      document.getElementById('progressBar').style.width = `${Math.min(100, pctCoverage)}%`;
+
+      // Top station
+      let topStation = null;
+      usedStationMap.forEach(v => {
+        if (!topStation || v.count > topStation.count) {
+          topStation = v;
+        }
+      });
+
+      if (topStation) {
+        document.getElementById('statTopStation').textContent = topStation.name;
+        document.getElementById('statTopCount').textContent = `${topStation.count} times (${((topStation.count / Math.max(1, totalAnswers)) * 100).toFixed(1)}%)`;
+      } else {
+        document.getElementById('statTopStation').textContent = '-';
+        document.getElementById('statTopCount').textContent = '0 uses';
+      }
+
+      // Populate raw json drawer
+      const jsonArea = document.getElementById('rawJsonTextarea');
+      if (AppState.data && Object.keys(AppState.data.archivedAnswers || {}).length > 0) {
+        jsonArea.value = JSON.stringify(AppState.data, null, 2);
+      }
+    }
+
+    // Render Frequency List
+    function renderFrequencyList() {
+      const container = document.getElementById('freqListContainer');
+      const { usedStationMap, totalAnswers } = AppState.stats;
+
+      if (usedStationMap.size === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h3>No Station Data Loaded Yet</h3>
+            <p>Export your Tubedoku game records using the Mobile Bookmarklet, or click "Try Sample Data" above to test the tracker immediately.</p>
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+              <button class="btn btn-primary" onclick="switchTab('bookmarklet')">Setup Mobile Bookmarklet</button>
+              <button class="btn btn-secondary" onclick="loadSampleData()">Load Sample Data</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      let list = Array.from(usedStationMap.values());
+
+      // Filter by search
+      const q = AppState.searchFreq.toLowerCase().trim();
+      if (q) {
+        list = list.filter(item => {
+          if (item.name.toLowerCase().includes(q)) return true;
+          if (item.station && item.station.l.some(l => l.toLowerCase().includes(q))) return true;
+          return false;
+        });
+      }
+
+      // Filter by tube line
+      if (AppState.filterLine !== 'all') {
+        list = list.filter(item => {
+          return item.station && item.station.l.some(l => l.toLowerCase() === AppState.filterLine.toLowerCase());
+        });
+      }
+
+      // Sort
+      const maxCount = Math.max(1, ...list.map(i => i.count));
+      list.sort((a, b) => {
+        switch (AppState.sortFreq) {
+          case 'count-asc': return a.count - b.count;
+          case 'name-asc': return a.name.localeCompare(b.name);
+          case 'name-desc': return b.name.localeCompare(a.name);
+          case 'zone-asc': {
+            const za = a.station ? parseInt(a.station.z) || 99 : 99;
+            const zb = b.station ? parseInt(b.station.z) || 99 : 99;
+            return za - zb;
+          }
+          case 'count-desc':
+          default:
+            return b.count - a.count;
+        }
+      });
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h3>No stations matched your search/filter</h3>
+            <p>Try clearing your search query or selecting "All Lines".</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      list.forEach((item, index) => {
+        const pct = totalAnswers > 0 ? ((item.count / totalAnswers) * 100).toFixed(1) : 0;
+        const relativePct = Math.min(100, Math.round((item.count / maxCount) * 100));
+        const lines = item.station ? item.station.l : [];
+        const zone = item.station ? item.station.z : null;
+
+        const lineBadges = lines.map(line => `
+          <span class="line-badge ${getLineBadgeClass(line)}">${line}</span>
+        `).join('');
+
+        html += `
+          <div class="station-card">
+            <div class="station-left">
+              <span class="station-rank">#${index + 1}</span>
+              <div class="station-info">
+                <div class="station-name-row">
+                  <span class="station-name">${item.name}</span>
+                  ${zone ? `<span class="zone-tag">Zone ${zone}</span>` : ''}
+                </div>
+                <div class="station-lines">
+                  ${lineBadges || '<span style="color:var(--text-dim);font-size:0.75rem;">Other Network</span>'}
+                </div>
+              </div>
+            </div>
+            <div class="station-right">
+              <div class="count-box">
+                <span class="count-num">${item.count} <span class="count-unit">uses</span></span>
+                <span class="count-pct">${pct}% of answers</span>
+                <div class="freq-bar-outer" title="${relativePct}% of top station usage">
+                  <div class="freq-bar-inner" style="width: ${relativePct}%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // Render Unused Stations
+    function renderUnusedStations() {
+      const container = document.getElementById('unusedGridContainer');
+      const { usedStationMap } = AppState.stats;
+
+      let unused = STATIONS.filter(s => {
+        const norm = normalizeStationName(s.n);
+        return !usedStationMap.has(norm);
+      });
+
+      // Search filter
+      const q = AppState.searchUnused.toLowerCase().trim();
+      if (q) {
+        unused = unused.filter(s => s.n.toLowerCase().includes(q));
+      }
+
+      // Line filter
+      if (AppState.filterUnusedLine !== 'all') {
+        unused = unused.filter(s => s.l.some(l => l.toLowerCase() === AppState.filterUnusedLine.toLowerCase()));
+      }
+
+      // Zone filter
+      if (AppState.filterUnusedZone !== 'all') {
+        unused = unused.filter(s => s.z === AppState.filterUnusedZone || (s.z && s.z.includes(AppState.filterUnusedZone)));
+      }
+
+      if (unused.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <h3>No Unused Stations Found</h3>
+            <p>Either all stations on this filter have been played, or your search query had no matches!</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      unused.forEach(s => {
+        const lineBadges = s.l.map(line => `
+          <span class="line-badge ${getLineBadgeClass(line)}">${line}</span>
+        `).join('');
+
+        html += `
+          <div class="unused-card">
+            <div class="unused-header">
+              <span class="unused-title">${s.n}</span>
+              <span class="zone-tag">Z${s.z}</span>
+            </div>
+            <div class="station-lines">
+              ${lineBadges}
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // Filter controls setup
+    function initLinePills() {
+      const container = document.getElementById('lineFilterPills');
+      let html = `
+        <button class="line-pill active" data-line="all" onclick="selectLineFilter('all')">All Lines</button>
+      `;
+      TUBE_LINES.forEach(line => {
+        html += `
+          <button class="line-pill" data-line="${line.name}" onclick="selectLineFilter('${line.name}')">
+            <span class="line-pill-dot" style="background:${line.color};"></span>
+            ${line.name}
+          </button>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function initUnusedFilters() {
+      const select = document.getElementById('unusedLineSelect');
+      TUBE_LINES.forEach(line => {
+        const opt = document.createElement('option');
+        opt.value = line.name;
+        opt.textContent = line.name;
+        select.appendChild(opt);
+      });
+    }
+
+    function selectLineFilter(line) {
+      AppState.filterLine = line;
+      document.querySelectorAll('#lineFilterPills .line-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-line') === line);
+      });
+      renderFrequencyList();
+    }
+
+    function onFilterChange() {
+      AppState.searchFreq = document.getElementById('freqSearch').value;
+      AppState.sortFreq = document.getElementById('freqSort').value;
+      AppState.searchUnused = document.getElementById('unusedSearch').value;
+      AppState.filterUnusedLine = document.getElementById('unusedLineSelect').value;
+      AppState.filterUnusedZone = document.getElementById('unusedZoneSelect').value;
+      renderFrequencyList();
+      renderUnusedStations();
+    }
+
+    // Tab Switching
+    function switchTab(tab) {
+      AppState.activeTab = tab;
+      const tabs = ['frequency', 'unused', 'bookmarklet', 'map', 'data'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+        const view = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (btn) btn.classList.toggle('active', t === tab);
+        if (view) view.style.display = t === tab ? 'block' : 'none';
+      });
+      if (tab === 'unused') renderUnusedStations();
+      if (tab === 'frequency') renderFrequencyList();
+    }
+
+    // Toast notification
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => {
+        t.classList.remove('show');
+      }, 3200);
+    }
+
+    // Sample Data for immediate testing
+    function loadSampleData() {
+      const sample = {
+        "archivedAnswers": {
+          "2026-10-18": {
+            "a1": "Kennington", "a2": "Bermondsey", "a3": "Angel",
+            "b1": "Southwark",  "b2": "London Bridge", "b3": "Waterloo",
+            "c1": "Borough",    "c2": "Monument",    "c3": "Bank"
+          },
+          "2026-10-17": {
+            "a1": "Waterloo",   "a2": "Westminster", "a3": "Green Park",
+            "b1": "London Bridge", "b2": "Southwark", "b3": "Bermondsey",
+            "c1": "Elephant & Castle", "c2": "Kennington", "c3": "Oval"
+          },
+          "2026-10-16": {
+            "a1": "Oxford Circus", "a2": "Piccadilly Circus", "a3": "Charing Cross",
+            "b1": "Tottenham Court Road", "b2": "Leicester Square", "b3": "Embankment",
+            "c1": "Holborn", "c2": "Covent Garden", "c3": "Waterloo"
+          },
+          "2026-10-15": {
+            "a1": "King's Cross St. Pancras", "a2": "Euston", "a3": "Warren Street",
+            "b1": "Russell Square", "b2": "Holborn", "b3": "Goodge Street",
+            "c1": "Tottenham Court Road", "c2": "Oxford Circus", "c3": "Bond Street"
+          },
+          "2026-10-14": {
+            "a1": "Baker Street", "a2": "Marylebone", "a3": "Edgware Road",
+            "b1": "Regent's Park", "b2": "Oxford Circus", "b3": "Paddington",
+            "c1": "Great Portland Street", "c2": "Warren Street", "c3": "Euston Square"
+          },
+          "2026-10-13": {
+            "a1": "Victoria", "a2": "Green Park", "a3": "Oxford Circus",
+            "b1": "St. James's Park", "b2": "Westminster", "b3": "Waterloo",
+            "c1": "Sloane Square", "c2": "South Kensington", "c3": "Gloucester Road"
+          },
+          "2026-10-12": {
+            "a1": "Liverpool Street", "a2": "Moorgate", "a3": "Bank",
+            "b1": "Aldgate", "b2": "Monument", "b3": "London Bridge",
+            "c1": "Aldgate East", "c2": "Tower Hill", "c3": "Cannon Street"
+          }
+        },
+        "completedPuzzles": {
+          "2026-10-18": true,
+          "2026-10-17": true,
+          "2026-10-16": true,
+          "2026-10-15": true,
+          "2026-10-14": true,
+          "2026-10-13": true,
+          "2026-10-12": true
+        }
+      };
+
+      AppState.data = sample;
+      saveStoredData();
+      computeStats();
+      renderAll();
+      showToast('Loaded 7 days of sample Tubedoku history!');
+      switchTab('frequency');
+    }
+
+    // Manual Data Import / Export
+    function importManualJson() {
+      const text = document.getElementById('rawJsonTextarea').value.trim();
+      if (!text) {
+        alert('Please paste some JSON or Base64 data first');
+        return;
+      }
+      try {
+        let parsed = null;
+        if (text.startsWith('{') || text.startsWith('[')) {
+          parsed = JSON.parse(text);
+        } else {
+          const dec = decodeURIComponent(escape(atob(decodeURIComponent(text))));
+          parsed = JSON.parse(dec);
+        }
+
+        if (parsed.archivedAnswers || parsed.completedPuzzles) {
+          AppState.data = {
+            archivedAnswers: parsed.archivedAnswers || {},
+            completedPuzzles: parsed.completedPuzzles || {}
+          };
+          saveStoredData();
+          computeStats();
+          renderAll();
+          showToast(`Imported ${Object.keys(AppState.data.archivedAnswers).length} days from JSON!`);
+          switchTab('frequency');
+        } else {
+          alert('JSON did not contain archivedAnswers or completedPuzzles keys.');
+        }
+      } catch (err) {
+        alert('Error parsing JSON: ' + err.message);
+      }
+    }
+
+    function copyDataJson() {
+      const text = JSON.stringify(AppState.data, null, 2);
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('JSON data copied to clipboard!');
+      });
+    }
+
+    function exportDataJson() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(AppState.data, null, 2));
+      const a = document.createElement('a');
+      a.setAttribute("href", dataStr);
+      a.setAttribute("download", `tubedoku-backup-${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast('Backup downloaded');
+    }
+
+    function renderAll() {
+      renderStats();
+      renderFrequencyList();
+      renderUnusedStations();
+    }
+  </script>
+</body>
+</html>
