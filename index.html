@@ -738,10 +738,6 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
           Mobile Bookmarklet Setup
         </button>
-        <button class="btn btn-secondary" onclick="loadSampleData()">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-          Try Sample Data
-        </button>
         <button class="btn btn-secondary" onclick="switchTab('data')">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           Manual Import/Export
@@ -1313,10 +1309,10 @@
         container.innerHTML = `
           <div class="empty-state">
             <h3>No Station Data Loaded Yet</h3>
-            <p>Export your Tubedoku game records using the Mobile Bookmarklet, or click "Try Sample Data" above to test the tracker immediately.</p>
+            <p>Export your Tubedoku game records using the Mobile Bookmarklet, or paste your data directly in the Data Drawer.</p>
             <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
               <button class="btn btn-primary" onclick="switchTab('bookmarklet')">Setup Mobile Bookmarklet</button>
-              <button class="btn btn-secondary" onclick="loadSampleData()">Load Sample Data</button>
+              <button class="btn btn-secondary" onclick="switchTab('data')">Manual JSON Import</button>
             </div>
           </div>
         `;
@@ -1536,65 +1532,6 @@
       setTimeout(() => {
         t.classList.remove('show');
       }, 3200);
-    }
-
-    // Sample Data for immediate testing
-    function loadSampleData() {
-      const sample = {
-        "archivedAnswers": {
-          "2026-10-18": {
-            "a1": "Kennington", "a2": "Bermondsey", "a3": "Angel",
-            "b1": "Southwark",  "b2": "London Bridge", "b3": "Waterloo",
-            "c1": "Borough",    "c2": "Monument",    "c3": "Bank"
-          },
-          "2026-10-17": {
-            "a1": "Waterloo",   "a2": "Westminster", "a3": "Green Park",
-            "b1": "London Bridge", "b2": "Southwark", "b3": "Bermondsey",
-            "c1": "Elephant & Castle", "c2": "Kennington", "c3": "Oval"
-          },
-          "2026-10-16": {
-            "a1": "Oxford Circus", "a2": "Piccadilly Circus", "a3": "Charing Cross",
-            "b1": "Tottenham Court Road", "b2": "Leicester Square", "b3": "Embankment",
-            "c1": "Holborn", "c2": "Covent Garden", "c3": "Waterloo"
-          },
-          "2026-10-15": {
-            "a1": "King's Cross St. Pancras", "a2": "Euston", "a3": "Warren Street",
-            "b1": "Russell Square", "b2": "Holborn", "b3": "Goodge Street",
-            "c1": "Tottenham Court Road", "c2": "Oxford Circus", "c3": "Bond Street"
-          },
-          "2026-10-14": {
-            "a1": "Baker Street", "a2": "Marylebone", "a3": "Edgware Road",
-            "b1": "Regent's Park", "b2": "Oxford Circus", "b3": "Paddington",
-            "c1": "Great Portland Street", "c2": "Warren Street", "c3": "Euston Square"
-          },
-          "2026-10-13": {
-            "a1": "Victoria", "a2": "Green Park", "a3": "Oxford Circus",
-            "b1": "St. James's Park", "b2": "Westminster", "b3": "Waterloo",
-            "c1": "Sloane Square", "c2": "South Kensington", "c3": "Gloucester Road"
-          },
-          "2026-10-12": {
-            "a1": "Liverpool Street", "a2": "Moorgate", "a3": "Bank",
-            "b1": "Aldgate", "b2": "Monument", "b3": "London Bridge",
-            "c1": "Aldgate East", "c2": "Tower Hill", "c3": "Cannon Street"
-          }
-        },
-        "completedPuzzles": {
-          "2026-10-18": true,
-          "2026-10-17": true,
-          "2026-10-16": true,
-          "2026-10-15": true,
-          "2026-10-14": true,
-          "2026-10-13": true,
-          "2026-10-12": true
-        }
-      };
-
-      AppState.data = sample;
-      saveStoredData();
-      computeStats();
-      renderAll();
-      showToast('Loaded 7 days of sample Tubedoku history!');
-      switchTab('frequency');
     }
 
     // Manual Data Import / Export
