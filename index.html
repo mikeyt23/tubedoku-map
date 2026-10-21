@@ -734,11 +734,11 @@
 
       <!-- Quick Action Buttons -->
       <div class="header-actions">
-        <button class="btn btn-primary" onclick="switchTab('bookmarklet')">
+        <button class="btn btn-primary" onclick="switchTab('bookmarklet', true)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
           Mobile Bookmarklet Setup
         </button>
-        <button class="btn btn-secondary" onclick="switchTab('data')">
+        <button class="btn btn-secondary" onclick="switchTab('data', true)">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           Manual Import/Export
         </button>
@@ -989,6 +989,10 @@
           <button class="btn btn-primary" onclick="importManualJson()">
             Import Pasted Data
           </button>
+          <button class="btn btn-accent" onclick="pasteFromClipboardAndImport()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+            Paste from Clipboard
+          </button>
           <button class="btn btn-secondary" onclick="exportDataJson()">
             Download JSON Backup
           </button>
@@ -1090,7 +1094,8 @@
       initTargetUrl();
       initLinePills();
       initUnusedFilters();
-      checkUrlQueryParam();
+      checkUrlData();
+      window.addEventListener('hashchange', checkUrlData);
       loadStoredData();
       computeStats();
       renderAll();
@@ -1100,10 +1105,10 @@
     function initTargetUrl() {
       const input = document.getElementById('targetUrlInput');
       let target = window.location.origin + window.location.pathname;
-      if (target.startsWith('file://')) {
+      if (!window.location.origin || window.location.origin === 'null' || window.location.protocol === 'file:' || target.startsWith('file://')) {
         target = 'https://mikeyt23.github.io/tubedoku-map/';
       }
-      input.value = target;
+      input.value = target.split('#')[0].split('?')[0];
       updateBookmarkletCode();
     }
 
@@ -1114,7 +1119,8 @@
 
     function updateBookmarkletCode() {
       const target = document.getElementById('targetUrlInput').value.trim() || 'https://mikeyt23.github.io/tubedoku-map/';
-      const code = `javascript:(function(){try{var ans=localStorage.getItem('archivedAnswers');var comp=localStorage.getItem('completedPuzzles');if(!ans&&!comp){alert('No Tubedoku data found in this browser! Please make sure you are on tubedoku.com.');return;}var payload={archivedAnswers:ans?JSON.parse(ans):{},completedPuzzles:comp?JSON.parse(comp):{},exportedAt:new Date().toISOString()};var json=JSON.stringify(payload);var b64=btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,function(m,p){return String.fromCharCode('0x'+p);}));var target='${target}';window.location.href=target+(target.indexOf('?')===-1?'?':'&')+'data='+encodeURIComponent(b64);}catch(e){alert('Export failed: '+e.message);}})();`;
+      const cleanTarget = target.split('#')[0].split('?')[0];
+      const code = `javascript:(function(){try{var ans=localStorage.getItem('archivedAnswers');var comp=localStorage.getItem('completedPuzzles');if(!ans&&!comp){alert('No Tubedoku data found in this browser! Please make sure you are on tubedoku.com.');return;}var payload={archivedAnswers:ans?JSON.parse(ans):{},completedPuzzles:comp?JSON.parse(comp):{},exportedAt:new Date().toISOString()};var json=JSON.stringify(payload);if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(json).catch(function(){});}var b64=btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,function(m,p){return String.fromCharCode('0x'+p);}));var target='${cleanTarget}';window.location.href=target+'#data='+encodeURIComponent(b64);}catch(e){alert('Export failed: '+e.message);}})();`;
       document.getElementById('bookmarkletCodeDisplay').textContent = code;
     }
 
@@ -1149,10 +1155,20 @@
       document.getElementById('guideAndroid').style.display = dev === 'android' ? 'flex' : 'none';
     }
 
-    // Check ?data=... in URL
-    function checkUrlQueryParam() {
-      const params = new URLSearchParams(window.location.search);
-      const dataParam = params.get('data');
+    // Check #data=... or ?data=... in URL
+    function checkUrlData() {
+      let dataParam = null;
+      // 1. Check hash first (preferred: #data=... stays client-side, never sent across HTTP to GitHub)
+      if (window.location.hash) {
+        const hashStr = window.location.hash.replace(/^#/, '');
+        const hashParams = new URLSearchParams(hashStr);
+        dataParam = hashParams.get('data');
+      }
+      // 2. Fallback to query param (?data=...)
+      if (!dataParam && window.location.search) {
+        const searchParams = new URLSearchParams(window.location.search);
+        dataParam = searchParams.get('data');
+      }
       if (dataParam) {
         try {
           let jsonStr = '';
@@ -1169,6 +1185,7 @@
             };
             saveStoredData();
             showToast(`Imported ${Object.keys(AppState.data.archivedAnswers).length} days of Tubedoku history!`);
+            // Clean both hash and search from URL
             window.history.replaceState({}, document.title, window.location.pathname);
           }
         } catch (err) {
@@ -1311,8 +1328,8 @@
             <h3>No Station Data Loaded Yet</h3>
             <p>Export your Tubedoku game records using the Mobile Bookmarklet, or paste your data directly in the Data Drawer.</p>
             <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-              <button class="btn btn-primary" onclick="switchTab('bookmarklet')">Setup Mobile Bookmarklet</button>
-              <button class="btn btn-secondary" onclick="switchTab('data')">Manual JSON Import</button>
+              <button class="btn btn-primary" onclick="switchTab('bookmarklet', true)">Setup Mobile Bookmarklet</button>
+              <button class="btn btn-secondary" onclick="switchTab('data', true)">Manual JSON Import</button>
             </div>
           </div>
         `;
@@ -1511,7 +1528,7 @@
     }
 
     // Tab Switching
-    function switchTab(tab) {
+    function switchTab(tab, shouldScroll = false) {
       AppState.activeTab = tab;
       const tabs = ['frequency', 'unused', 'bookmarklet', 'map', 'data'];
       tabs.forEach(t => {
@@ -1522,6 +1539,13 @@
       });
       if (tab === 'unused') renderUnusedStations();
       if (tab === 'frequency') renderFrequencyList();
+
+      if (shouldScroll) {
+        const nav = document.querySelector('.nav-tabs');
+        if (nav) {
+          nav.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
     }
 
     // Toast notification
@@ -1565,6 +1589,20 @@
         }
       } catch (err) {
         alert('Error parsing JSON: ' + err.message);
+      }
+    }
+
+    async function pasteFromClipboardAndImport() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text) {
+          alert('Clipboard is empty.');
+          return;
+        }
+        document.getElementById('rawJsonTextarea').value = text;
+        importManualJson();
+      } catch (err) {
+        alert('Could not read clipboard automatically. Please paste your data directly into the text box below and click Import Pasted Data.');
       }
     }
 

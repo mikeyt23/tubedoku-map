@@ -9,7 +9,7 @@ A zero-dependency, single-file web application hosted on GitHub Pages that track
 - **Mobile Bookmarklet Generator**:
   - 1-tap copy button for a mobile bookmarklet script.
   - Interactive guides for **iOS Safari** and **Android Chrome**.
-  - Extracts `archivedAnswers` and `completedPuzzles` from `tubedoku.com`'s `localStorage` and securely redirects to your tracker with a base64 encoded query parameter (`?data=...`).
+  - Extracts `archivedAnswers` and `completedPuzzles` from `tubedoku.com`'s `localStorage` and securely redirects to your tracker with a base64 encoded URL fragment (`#data=...`), keeping payload data purely client-side without hitting server length limits.
 - **Station Frequency Analyzer**:
   - Normalizes station names against all 272 London Underground stations.
   - Ranks stations from most-used to least-used.
